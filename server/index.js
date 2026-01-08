@@ -514,21 +514,14 @@ async function fetchIMDBData(torrentName) {
 //UNIVERSAL TORRENT RESOLVER - Can find torrents by ANY identifier with optimized performance
 const universalTorrentResolver = async (identifier) => {
   // Use a timeout to prevent hanging operations
-  let resolverTimeout;
-  const timeoutPromise = new Promise((_, reject) => {
-    resolverTimeout = setTimeout(() => {
-      reject(new Error('Resolver timed out after 5 seconds'));
-    }, 5000);
-  });
+  const TIMEOUT_MS = 5000;
 
   try {
-    // Create a promise for the resolution process
-    const resolutionPromise = (async () => {
+    const findInMemory = async () => {
       // Skip verbose logging on frequent API calls
       const debugLevel = process.env.DEBUG === 'true';
       if (debugLevel) console.log(`🔍 Universal resolver looking for: ${identifier}`);
 
-      // Optimize with direct lookups for better performance - O(1) operations
       // Strategy 1: Direct hash match in torrents - fastest path
       if (torrents[identifier]) {
         return torrents[identifier];
@@ -569,30 +562,43 @@ const universalTorrentResolver = async (identifier) => {
           return existingTorrent;
         }
       }
-    })();
+      return null;
+    };
 
-    // Race the resolution against the timeout
-    return await Promise.race([resolutionPromise, timeoutPromise]);
+    // Try finding in memory first with timeout
+    let torrent = await Promise.race([
+      findInMemory(),
+      new Promise(resolve => setTimeout(() => resolve(null), 1000)) // Fast memory lookup timeout
+    ]);
+
+    if (torrent) return torrent;
+
+    // Strategy 6: If identifier looks like a torrent ID/magnet, try loading it
+    // This allows reviving torrents after server restart using just the hash
+    if (identifier.startsWith('magnet:') || identifier.startsWith('http') || identifier.length === 40) {
+      console.log(`🔄 Torrent not in memory, attempting to load/revive: ${identifier}`);
+      try {
+        // Use a longer timeout for the actual load operation
+        const loadPromise = loadTorrentFromId(identifier);
+
+        // Race the load against a strict timeout
+        torrent = await Promise.race([
+          loadPromise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Load timeout')), TIMEOUT_MS))
+        ]);
+
+        if (torrent) return torrent;
+      } catch (error) {
+        console.error(`❌ Failed to load/revive torrent:`, error.message);
+      }
+    }
+
+    console.log(`❌ Universal resolver exhausted all strategies for: ${identifier}`);
+    return null;
   } catch (error) {
     console.error(`⚠️ Resolver error: ${error.message}`);
     return null;
-  } finally {
-    clearTimeout(resolverTimeout);
   }
-
-  // Strategy 6: If identifier looks like a torrent ID/magnet, try loading it
-  if (identifier.startsWith('magnet:') || identifier.startsWith('http') || identifier.length === 40) {
-    console.log(`🔄 Attempting to load as new torrent: ${identifier}`);
-    try {
-      const torrent = await loadTorrentFromId(identifier);
-      return torrent;
-    } catch (error) {
-      console.error(`❌ Failed to load as new torrent:`, error.message);
-    }
-  }
-
-  console.log(`❌ Universal resolver exhausted all strategies for: ${identifier}`);
-  return null;
 };
 
 // ENHANCED TORRENT LOADER
