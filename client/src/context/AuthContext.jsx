@@ -11,47 +11,21 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const clearAuth = useCallback(() => {
     localStorage.removeItem('seedbox_authenticated');
     localStorage.removeItem('seedbox_auth_timestamp');
-    setIsAuthenticated(false);
-    console.log('🚪 Authentication cleared');
+    // setIsAuthenticated(false); // Keep authenticated even if cleared
+    console.log('🚪 Authentication cleared (but keeping session active as auth is disabled)');
   }, []);
 
   const checkAuthStatus = useCallback(() => {
-    try {
-      const authStatus = localStorage.getItem('seedbox_authenticated');
-      const authTimestamp = localStorage.getItem('seedbox_auth_timestamp');
-      
-      if (authStatus === 'true' && authTimestamp) {
-        // Check if authentication is still valid (optional: add expiration logic here)
-        const timestamp = parseInt(authTimestamp);
-        const now = Date.now();
-        
-        // Authentication expires after 30 days (optional)
-        const EXPIRY_TIME = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
-        
-        if (now - timestamp < EXPIRY_TIME) {
-          setIsAuthenticated(true);
-          console.log('✅ Found valid authentication in localStorage');
-        } else {
-          // Clear expired authentication
-          clearAuth();
-          console.log('⏰ Authentication expired, cleared localStorage');
-        }
-      } else {
-        console.log('❌ No valid authentication found in localStorage');
-      }
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-      clearAuth();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [clearAuth]);
+    // Always authenticated
+    setIsAuthenticated(true);
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     checkAuthStatus();

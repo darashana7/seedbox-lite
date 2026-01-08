@@ -8,7 +8,7 @@ import RecentPage from './components/RecentPage';
 import SettingsPage from './components/SettingsPage';
 import CacheManagementPage from './components/CacheManagementPage';
 import SearchSourcesPage from './components/SearchSourcesPage';
-import LoginScreen from './components/LoginScreen';
+// import LoginScreen from './components/LoginScreen';
 import './App.css';
 
 const AuthenticatedApp = () => {
@@ -17,10 +17,10 @@ const AuthenticatedApp = () => {
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%)',
         color: '#ffffff'
@@ -41,10 +41,8 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Show login screen if not authenticated
-  if (!isAuthenticated) {
-    return <LoginScreen onAuthSuccess={authenticate} />;
-  }
+  // Authentication check removed as per user request
+
 
   // Show main app if authenticated
   return (
@@ -52,7 +50,7 @@ const AuthenticatedApp = () => {
       <Routes>
         {/* Full-width Netflix-style page without sidebar */}
         <Route path="torrent/:torrentHash" element={<TorrentPageNetflix />} />
-        
+
         {/* Main app with sidebar layout */}
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
